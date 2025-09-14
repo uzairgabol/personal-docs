@@ -1,77 +1,231 @@
-# Ubuntu Static IP Configuration Guide
+# Ubuntu Static IP Configuration - Step by Step Guide
 
-This guide explains how to configure a static IP address in Ubuntu using Netplan.
+This guide provides detailed step-by-step instructions to configure a static IP address in Ubuntu using Netplan.
 
-## Prerequisites
+## Step 1: Open Terminal
 
-- Ubuntu system with Netplan (Ubuntu 17.10+)
-- Root or sudo access
-- Knowledge of your network configuration (IP range, gateway, DNS servers)
+Press `Ctrl + Alt + T` to open the terminal, or search for "Terminal" in the applications menu.
 
-## Step-by-Step Instructions
+## Step 2: Check Current Network Configuration
 
-### 5. Verify Configuration
+View your current network interfaces and IP addresses:
 
-Check that your static IP is applied correctly:
+```bash
+ip addr show
+```
+
+**Expected Output Example:**
+```
+2: ens18: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    inet 192.168.1.100/24 brd 192.168.1.255 scope global dynamic ens18
+```
+
+**Note down:**
+- Interface name (e.g., `ens18`, `eth0`, `enp0s3`)
+- Current IP address and network range
+
+## Step 3: Check Current Gateway
+
+Find your current gateway (router) IP address:
+
+```bash
+ip route show default
+```
+
+**Expected Output Example:**
+```
+default via 192.168.1.1 dev ens18 proto dhcp metric 100
+```
+
+**Note down:** Gateway IP (e.g., `192.168.1.1`)
+
+## Step 4: Backup Current Configuration
+
+Create a backup of your current network configuration:
+
+```bash
+sudo cp /etc/netplan/01-network-manager-all.yaml /etc/netplan/01-network-manager-all.yaml.backup
+```
+
+## Step 5: Open Netplan Configuration File
+
+Edit the Netplan configuration file:
+
+```bash
+sudo nano /etc/netplan/01-network-manager-all.yaml
+```
+
+**What you'll see:** The nano text editor will open with the current configuration file.
+
+## Step 6: Clear and Replace Configuration
+
+1. **Clear all existing content** by pressing `Ctrl + A` then `Delete`
+2. **Copy and paste** the following configuration:
+
+```yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    ens18:
+      dhcp4: no
+      addresses:
+        - 192.168.1.111/24
+      routes:
+        - to: default
+          via: 192.168.1.1
+      nameservers:
+        addresses:
+          - 8.8.8.8
+          - 1.1.1.1
+```
+
+## Step 7: Customize Your Configuration
+
+**Replace the following values with your specific network settings:**
+
+| Field | What to Replace | Example |
+|-------|----------------|---------|
+| `ens18` | Your interface name from Step 2 | `eth0`, `enp0s3` |
+| `192.168.1.111` | Your desired static IP | `192.168.1.150` |
+| `192.168.1.1` | Your gateway IP from Step 3 | `10.0.0.1` |
+
+**Important:** 
+- Keep the `/24` after your IP address
+- Use spaces for indentation, NOT tabs
+- Make sure your static IP is in the same network range as your gateway
+
+## Step 8: Save the Configuration
+
+1. Press `Ctrl + X` to exit
+2. Press `Y` to confirm saving
+3. Press `Enter` to confirm the filename
+
+## Step 9: Test Configuration Syntax
+
+Check if your YAML syntax is correct:
+
+```bash
+sudo netplan --debug generate
+```
+
+**What to expect:**
+- If successful: No error messages
+- If there's an error: Fix the indentation or syntax in the file
+
+## Step 10: Apply the Configuration
+
+Apply your new network settings:
+
+```bash
+sudo netplan apply
+```
+
+**What happens:** Your network interface will restart with the new static IP.
+
+## Step 11: Verify the Static IP
+
+Check if your static IP is active:
 
 ```bash
 ip addr show ens18
 ```
 
-Test network connectivity:
+**Replace `ens18`** with your interface name.
+
+**Expected Output:**
+```
+inet 192.168.1.111/24 brd 192.168.1.255 scope global ens18
+```
+
+## Step 12: Test Internet Connectivity
+
+Test if you can reach the internet:
 
 ```bash
 ping -c 4 8.8.8.8
+```
+
+**Expected Output:**
+```
+PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
+64 bytes from 8.8.8.8: icmp_seq=1 ttl=117 time=15.2 ms
+```
+
+## Step 13: Test DNS Resolution
+
+Test if domain names resolve correctly:
+
+```bash
 ping -c 4 google.com
 ```
 
-## Configuration Parameters
+**Expected Output:**
+```
+PING google.com (142.250.190.78) 56(84) bytes of data.
+64 bytes from lga25s62-in-f14.1e100.net (142.250.190.78): icmp_seq=1 ttl=117 time=15.8 ms
+```
 
-| Parameter | Description | Example |
-|-----------|-------------|---------|
-| Interface | Network interface name | `ens18`, `eth0`, `enp0s3` |
-| IP Address | Static IP with subnet mask | `192.168.1.111/24` |
-| Gateway | Router IP address | `192.168.1.1` |
-| DNS Servers | Domain name servers | `8.8.8.8`, `1.1.1.1` |
+## Troubleshooting Steps
 
-## Common Network Interface Names
+### If Step 10 (netplan apply) Fails:
 
-- **`ens18`** - VMware/VirtualBox virtual machines
-- **`eth0`** - Traditional Ethernet naming
-- **`enp0s3`** - Physical network interfaces
-- **`wlan0`** - Wireless interfaces
+**Step A:** Check your YAML syntax
+```bash
+sudo netplan --debug apply
+```
 
-## Troubleshooting
+**Step B:** Restart networking service
+```bash
+sudo systemctl restart systemd-networkd
+```
 
-### If configuration doesn't apply:
+### If You Lose Internet Connection:
 
-1. Check YAML syntax:
-   ```bash
-   sudo netplan --debug apply
-   ```
+**Step A:** Restore backup configuration
+```bash
+sudo cp /etc/netplan/01-network-manager-all.yaml.backup /etc/netplan/01-network-manager-all.yaml
+sudo netplan apply
+```
 
-2. Restart networking service:
-   ```bash
-   sudo systemctl restart systemd-networkd
-   ```
+**Step B:** Check if your IP is already in use
+```bash
+ping 192.168.1.111
+```
+If you get responses, choose a different IP address.
 
-3. Revert to DHCP if needed:
-   ```bash
-   sudo netplan --debug generate
-   sudo netplan apply
-   ```
+### If DNS Doesn't Work:
 
-## Important Notes
+**Step A:** Try different DNS servers in your configuration:
+```yaml
+nameservers:
+  addresses:
+    - 1.1.1.1
+    - 9.9.9.9
+```
 
-- **Backup**: Always backup your original configuration before making changes
-- **YAML Syntax**: Be careful with indentation (use spaces, not tabs)
-- **Network Range**: Ensure your static IP is within your network's IP range
-- **IP Conflicts**: Make sure the IP address isn't already in use by another device
+## Complete Example Configurations
 
-## Example for Different Network
+### For 192.168.1.x Network:
+```yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    ens18:
+      dhcp4: no
+      addresses:
+        - 192.168.1.111/24
+      routes:
+        - to: default
+          via: 192.168.1.1
+      nameservers:
+        addresses:
+          - 8.8.8.8
+          - 1.1.1.1
+```
 
-For a different network setup (e.g., 10.0.0.x network):
-
+### For 10.0.0.x Network:
 ```yaml
 network:
   version: 2
@@ -88,25 +242,13 @@ network:
         addresses:
           - 8.8.8.8
           - 1.1.1.1
-``` 1. Identify Your Network Interface
-
-First, identify your network interface name:
-
-```bash
-ip addr show
 ```
 
-Common interface names:
-- `ens18` - VMware/VirtualBox virtual machines
-- `eth0` - Traditional Ethernet naming
-- `enp0s3` - Physical network interfaces
+## Summary
 
-### 2. Edit Netplan Configuration
+✅ **You have successfully configured a static IP address when:**
+- Step 11 shows your desired IP address
+- Step 12 successfully pings 8.8.8.8
+- Step 13 successfully pings google.com
 
-Open the Netplan configuration file:
-
-```bash
-sudo nano /etc/netplan/01-network-manager-all.yaml
-```
-
-###
+Your Ubuntu system now has a permanent IP address that won't change when you restart your computer or router.
