@@ -1,8 +1,3 @@
 - name: update ca certificates
   command: update-ca-certificates
   notify: restart docker
-
-- name: restart docker
-  systemd:
-    name: docker
-    state: restarted
