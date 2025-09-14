@@ -10,6 +10,11 @@ sudo systemctl daemon-reload
 sudo hostnamectl set-hostname ubuntutwo-01
 ```
 
+```bash
+sudo journalctl -u rancher-system-agent -f
+
+```
+
 View Logs
 ```bash
 sudo journalctl -u k3s-agent -f
