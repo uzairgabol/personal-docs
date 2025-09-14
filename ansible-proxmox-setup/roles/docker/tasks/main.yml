@@ -1,0 +1,23 @@
+---
+- name: check if docker installed
+  stat:
+    path: /usr/bin/docker
+  register: docker_bin
+
+- name: install docker if missing
+  shell: curl -fsSL https://get.docker.com | sh
+  args:
+    executable: /bin/bash
+  when: not docker_bin.stat.exists
+
+- name: ensure docker enabled
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: add user to docker group
+  user:
+    name: "{{ target_user }}"
+    groups: docker
+    append: yes

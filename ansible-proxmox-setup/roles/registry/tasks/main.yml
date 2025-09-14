@@ -1,0 +1,8 @@
+---
+- name: docker login to registry
+  become: yes
+  become_user: "{{ target_user }}"
+  shell: |
+    echo "{{ registry_password }}" | docker login "{{ registry_hostname }}" -u "{{ registry_username }}" --password-stdin
+  args:
+    executable: /bin/bash

@@ -1,0 +1,5 @@
+registry_hostname: registry.home
+registry_ip: 192.168.1.111
+target_user: ubuntutwo
+registry_username: uzair
+registry_password: root

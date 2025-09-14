@@ -1,0 +1,29 @@
+---
+- name: install base packages
+  apt:
+    name:
+      - qemu-guest-agent
+      - openssh-server
+      - ca-certificates
+      - curl
+      - ufw
+    state: present
+    update_cache: yes
+
+- name: enable and start ssh
+  systemd:
+    name: ssh
+    state: started
+    enabled: yes
+
+- name: enable and start qemu-guest-agent
+  systemd:
+    name: qemu-guest-agent
+    state: started
+    enabled: yes
+
+- name: allow SSH in UFW
+  command: ufw allow OpenSSH
+  register: ufw_allow
+  changed_when: false
+  failed_when: false

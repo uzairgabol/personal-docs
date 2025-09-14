@@ -1,0 +1,10 @@
+---
+- name: configure cloned proxmox vms
+  hosts: proxmox_vms
+  become: yes
+
+  roles:
+    - common
+    - certs
+    - docker
+    - registry

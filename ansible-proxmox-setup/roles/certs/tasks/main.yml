@@ -1,0 +1,19 @@
+- name: copy registry certificate
+  copy:
+    src: domain.crt
+    dest: /usr/local/share/ca-certificates/registry.home.crt
+    owner: root
+    group: root
+    mode: '0644'
+  notify: update ca certificates
+
+- name: ensure /etc/hosts has registry entry
+  lineinfile:
+    path: /etc/hosts
+    regexp: '^{{ registry_ip }}\s+{{ registry_hostname }}'
+    line: "{{ registry_ip }} {{ registry_hostname }}"
+    state: present
+    create: yes
+
+# flush handlers immediately so docker restart happens before registry login
+- meta: flush_handlers
