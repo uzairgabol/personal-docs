@@ -102,6 +102,7 @@ enable_service() {
 
 block_internet() {
     enable_service
+
     echo "[*] Flushing existing rules..."
     sudo iptables -F
     sudo iptables -X
@@ -109,19 +110,28 @@ block_internet() {
     sudo iptables -t nat -X
     sudo iptables -t mangle -F
     sudo iptables -t mangle -X
-    
+
     echo "[*] Setting default policies to DROP..."
     sudo iptables -P INPUT DROP
     sudo iptables -P FORWARD DROP
     sudo iptables -P OUTPUT DROP
-    
+
     echo "[*] Allowing traffic on local subnet..."
     sudo iptables -A INPUT -s $SUBNET -j ACCEPT
     sudo iptables -A OUTPUT -d $SUBNET -j ACCEPT
-    
+
+    echo "[*] Allowing loopback traffic..."
+    sudo iptables -A INPUT -i lo -j ACCEPT
+    sudo iptables -A OUTPUT -o lo -j ACCEPT
+
+    echo "[*] Allowing DNS..."
+    sudo iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
+    sudo iptables -A INPUT -p udp --sport 53 -j ACCEPT
+
     echo "[*] Saving rules..."
     sudo service iptables save
-    echo "[*] Internet blocked, local subnet allowed."
+
+    echo "[*] Internet blocked, local subnet and loopback allowed."
 }
 
 unblock_internet() {
